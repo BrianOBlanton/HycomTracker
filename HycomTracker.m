@@ -1,4 +1,4 @@
-function HycomTracker(V,G,IC)
+function R=HycomTracker(V,G,IC)
 
 options.draw=true;
 t1d=V(1).time;
@@ -16,4 +16,8 @@ G=el_areas(G);
 
 [IC.x,IC.y]=convll2m(IC.lon,IC.lat,G.lo0,G.la0);
 
-[xx,yy,tt,uu,vv]=drog2ddt(G,t1d,t2d,dt,idt,IC.x,IC.y,V,options);
+[R.xx,R.yy,R.tt,R.uu,R.vv]=drog2ddt(G,t1d,t2d,dt,idt,IC.x,IC.y,V,options);
+
+% invert the forward projetion for drogue locations
+[R.lon,R.lat]=convm2ll(R.xx,R.yy,G.lo0,G.la0);
+
