@@ -14,15 +14,21 @@ There are 3 main codes:
 % First step: generate the velocity arrays from HYCOM and fake HYCOM/finite element grid.  
 % http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_91.1/2015
 
+<pre>
 [V,G]=HycomTrackerPrep;
+</pre>
 
 % Then, build initial condition/locations:
 
+<pre>
 IC=HycomTrackerIC;
+</pre>
 
 % Pass to drog2ddt, through HycomTracker handler:
 
+<pre>
 R=HycomTracker(V,G,IC);
+</pre>
 
 % Then, make plots of R.lon and R.lat, etc...
 
@@ -30,10 +36,13 @@ R=HycomTracker(V,G,IC);
 
 % plot the trajectories
 
+<pre>
 plot(R.lon'-360,R.lat')
+</pre>
 
 % plot the initial positions
 
+<pre>
 line(R.lon(:,1)-360,R.lat(:,1),'Marker','.','Color','k','LineStyle','none')
-
+</pre>
 
