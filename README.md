@@ -38,19 +38,16 @@ R=HycomTracker(V,G,IC);
 
 % Then, make plots of R.lon and R.lat, etc...
 % Subtract 360 from longitude to get it in the range -180->180; note the transpose.
-
+url='http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_91.1/2015';
 plot(R.lon'-360,R.lat')       % plot the trajectories
 axis('equal')
 line(R.lon(:,1)-360,R.lat(:,1),'Marker','.','Color','k','LineStyle','none')    % plot the initial positions
 % plot some coastline data, if you have it.  If you have the mapping toolbox, then:
 c=load('coast');   % note that this data is already in the range -180->180
 line(c.long,c.lat,'Color','k')
-axis([G.lon1-360 G.lon2-360 G.lat1 G.lat2])
-
+axis([-99 -75 16 34])
+title({'Trajectories in HYCOM Surface Velocity',url,[datestr(V(1).time,2) ' thru ' datestr(V(end).time,2) ]},'Interpreter','none')
 </pre>
-
-
-
 
 Here's an example plot:
 
