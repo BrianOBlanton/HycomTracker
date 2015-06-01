@@ -1,5 +1,6 @@
 # HycomTracker
-Demonstration MATLAB code for particle tracking with HYCOM model output
+Demonstration MATLAB code for particle tracking with HYCOM model output.  This code uses nctoolbox to access and extract variables from HYCOM output posted in THREDDS Data Servers (TDS), like http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_91.1/2015.  You can get nctoolbox from https://github.com/nctoolbox/nctoolbox
+
 
 There are 3 main codes: 
 
