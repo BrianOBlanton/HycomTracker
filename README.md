@@ -13,13 +13,16 @@ There are 3 main codes:
 ## Run in MATLAB.
 % First step: generate the velocity arrays from HYCOM and fake HYCOM/finite element grid.  
 % http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_91.1/2015
->> [V,G]=HycomTrackerPrep;
+
+[V,G]=HycomTrackerPrep;
 
 % Then, build initial condition/locations:
->> IC=HycomTrackerIC;
+
+IC=HycomTrackerIC;
 
 % Pass to drog2ddt, through HycomTracker handler:
->> R=HycomTracker(V,G,IC);
+
+R=HycomTracker(V,G,IC);
 
 % Then, make plots of R.lon and R.lat, etc...
 
