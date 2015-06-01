@@ -41,4 +41,4 @@ plot(R.lon'-360,R.lat')
 line(R.lon(:,1)-360,R.lat(:,1),'Marker','.','Color','k','LineStyle','none')
 </pre>
 
-
+![TestImage1](ExamplePlot.png "Example")
