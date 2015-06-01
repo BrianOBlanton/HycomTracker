@@ -28,19 +28,12 @@ function [V,G]=HycomTrackerPrep(varargin)
 url='http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_91.1/2015';
 level=1;
 %subregion=[lon1 lon2 lat1 lat2];
-subregion=[262 295 7 32];
+subregion =[262  295     7   32];
+PlotProgress=true;
+verbose=false;
 
-%verbose=true;
-
-if ~exist('ncgeodataset')
+if ~exist('ncgeodataset','file')
     error('This code requires nctoolbox for netCDF file access and processing. Install via GitHub from https://github.com/nctoolbox/nctoolbox')
-end
-
-try 
-    url='http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_91.1/2015';
-    nc=ncgeodataset(url);
-catch
-    fprintf('Failed to open netCDF link: %s.  Check link and server status.\n',url)
 end
 
 % Strip off propertyname/value pairs in varargin not related to
@@ -57,11 +50,25 @@ while k<length(varargin),
     case 'subregion',
       subregion=varargin{k+1};
       varargin([k k+1])=[];
+    case 'plotprogress',
+      subregion=varargin{k+1};
+      varargin([k k+1])=[];
+    case 'verbose',
+      subregion=varargin{k+1};
+      varargin([k k+1])=[];
     otherwise
       k=k+2;
   end;
 end;      
      
+% open the data pipe
+try 
+    url='http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_91.1/2015';
+    nc=ncgeodataset(url);
+catch
+    fprintf('Failed to open netCDF link: %s.  Check link and server status.\n',url)
+end
+
 % get spatial variables
 lon=nc{'Longitude'};
 lat=nc{'Latitude'};
@@ -90,6 +97,12 @@ lat_2d=cast(lat(ilat1:ilat2,ilon1:ilon2),'double');
 % Create a fake ADCIRC grid for drog2ddt
 G.lon=lon_2d(:);
 G.lat=lat_2d(:);
+G.lo0=mean(G.lon);
+G.la0=mean(G.lat);
+G.lon1=lon1;
+G.lon2=lon2;
+G.lat1=lat1;
+G.lat2=lat2;
 G.z=NaN*ones(size(G.lat));
 G.name='FakeHycomGrid';
 G.e=elgen(nhoriz,nvert);
@@ -97,10 +110,9 @@ G.bnd=detbndy(G.e);
 % G=belint(G);
 % G=el_areas(G);
 
-
 % create velocity dataset for tracking
-ut=squeeze(u(1,level,ilat1:ilat2,ilon1:ilon2)); 
-vt=squeeze(v(1,level,ilat1:ilat2,ilon1:ilon2)); 
+ut=squeeze(u(:,level,ilat1:ilat2,ilon1:ilon2)); 
+vt=squeeze(v(:,level,ilat1:ilat2,ilon1:ilon2)); 
 ut=cast(ut,'double');
 vt=cast(vt,'double');
 
