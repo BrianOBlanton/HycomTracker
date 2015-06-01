@@ -19,30 +19,26 @@ There are 3 main codes:
 </pre>
 
 % Then, build initial condition/locations:
-
 <pre>
 IC=HycomTrackerIC;
 </pre>
 
 % Pass to drog2ddt, through HycomTracker handler:
-
 <pre>
 R=HycomTracker(V,G,IC);
 </pre>
 
 % Then, make plots of R.lon and R.lat, etc...
-
 % Subtract 360 from longitude to get it in the range -180->180; note the transpose
 
 % plot the trajectories
-
 <pre>
 plot(R.lon'-360,R.lat')
 </pre>
 
 % plot the initial positions
-
 <pre>
 line(R.lon(:,1)-360,R.lat(:,1),'Marker','.','Color','k','LineStyle','none')
 </pre>
+
 
