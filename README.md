@@ -11,7 +11,7 @@ setup_nctoolbox;
 </pre>
 
 
-There are 3 main codes: 
+## There are 3 main codes: 
 
 + HycomTrackerPrep - Builds velocity arrays and fake HYCOM grid.  Default subregion is Caribbean and Gulf of Mexico, surface velocities. The default HYCOM URL is http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_91.1/2015
 
