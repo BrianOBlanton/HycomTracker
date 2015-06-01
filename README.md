@@ -35,13 +35,10 @@ IC=HycomTrackerIC;
 
 % Pass to drog2ddt, through HycomTracker handler:
 R=HycomTracker(V,G,IC);
-</pre>
 
 % Then, make plots of R.lon and R.lat, etc...
 % Subtract 360 from longitude to get it in the range -180->180; note the transpose.
 
-
-<pre>
 plot(R.lon'-360,R.lat')       % plot the trajectories
 axis('equal')
 line(R.lon(:,1)-360,R.lat(:,1),'Marker','.','Color','k','LineStyle','none')    % plot the initial positions
