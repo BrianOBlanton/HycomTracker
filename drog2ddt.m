@@ -67,7 +67,6 @@ if ~is_valid_struct(fem_grid_struct)
    error('fem_grid_struct to DROG2DDT NOT valid.')
 end
 
-
 % Check options structure
 if ~exist('options')
    options.draw=0;
@@ -98,14 +97,12 @@ for i=1:length(V)
    end
 end
 
-
 % convert times from days to hours
 t1=t1d*24;
 t2=t2d*24;
 for i=1:length(V)
    V(i).time=V(i).time*24;
 end
-
 
 % check timestep
 if dt<eps
@@ -126,7 +123,6 @@ elseif t2 > timemax
    error('T2 exceeds maximum time in velocity arrays.')
 end
 
-
 % Check sizes of input drogue positions
 if ~all(size(xi)==size(yi))
    error('Sizes of initial drog position arrays must be equal.')
@@ -139,8 +135,8 @@ xi=xi(:);yi=yi(:);
 timevec=[V.time];
 
 % Attach element finding arrays to fem_grid_struct
-if ~isfield(fem_grid_struct,'A') |~isfield(fem_grid_struct,'B')|...
-   ~isfield(fem_grid_struct,'A0')|~isfield(fem_grid_struct,'T')
+if ~isfield(fem_grid_struct,'A') || ~isfield(fem_grid_struct,'B') || ...
+   ~isfield(fem_grid_struct,'A0') || ~isfield(fem_grid_struct,'T')
    fem_grid_struct=belint(fem_grid_struct);
    disp('   BELINT info added to fem_grid_struct')
 end
@@ -225,11 +221,11 @@ while time<t2
    %keyboard
       ic=ic+1;
       [ut,vt]=vel_interp(fem_grid_struct,xnext,ynext,jnext,V,timevec,time);
-      xx(:,ic+1) =xnew;
-      yy(:,ic+1) =ynew;
+      xx(:,ic+1)      =xnew;
+      yy(:,ic+1)      =ynew;
       uu(igood,ic+1)  =ut;
       vv(igood,ic+1)  =vt;
-      tt(ic+1)    =time;
+      tt(ic+1)        =time;
    end
    
    %Update positions on screen
@@ -295,13 +291,11 @@ ynew=y+vk2;
 % If NaN is in j, then drog has left domain.  
 % insert last known location into arrays
 jnew=locate_drog(fem_grid_struct,xnew,ynew,j);
-inan=find(isnan(jnew));;
+inan=find(isnan(jnew));
 if ~isempty(inan)
    xnew(inan)=x(inan);
    ynew(inan)=y(inan);
 end
-
-
 
 function retval=belel(fem_grid_struct,j,xylist)
 %BELEL - determine if points are in elements
