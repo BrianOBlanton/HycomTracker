@@ -8,6 +8,7 @@ function [V,G]=HycomTrackerPrep(varargin)
 %   url       - (OPT) points to a 3D Hycom solution file on a THREDDS DATA SERVER:
 %               (def='http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_91.1/2015')
 %   level     - (OPT) is the vertical level to extract (def=1)
+%   stride    - (OPT) spatial stride, basically the skip interval (def=1, no skip)
 %   subregion - (OPT) is a vector with fields: 
 %                    lon1  - lower-left longitude
 %                    lon2  - upper-right longitude
@@ -42,6 +43,7 @@ level=1;
 subregion =[262  295     7   32];
 PlotProgress=false;
 verbose=false;
+stride=1;
 
 if ~exist('ncgeodataset','file')
     error('This code requires nctoolbox for netCDF file access and processing. Install via GitHub from https://github.com/nctoolbox/nctoolbox')
@@ -65,7 +67,10 @@ while k<length(varargin),
       subregion=varargin{k+1};
       varargin([k k+1])=[];
     case 'verbose',
-      subregion=varargin{k+1};
+      verbose=varargin{k+1};
+      varargin([k k+1])=[];
+    case 'stride',
+      stride=varargin{k+1};
       varargin([k k+1])=[];
     otherwise
       k=k+2;
@@ -73,6 +78,7 @@ while k<length(varargin),
 end;      
      
 % open the data pipe
+fprintf('Trying to contact %s ...\n',url)
 try 
     nc=ncgeodataset(url);
     %b=nc.variables{:}';
@@ -83,20 +89,19 @@ catch ME
      rethrow(ME)
 end
 
-fprintf('nc.location=%s\n',nc.location)
+fprintf('Got it.\nnc.location=%s\n',nc.location)
 
-% get spatial variables
+% get spatial variable objects
 lon=nc{'Longitude'};
 lat=nc{'Latitude'};
 u=nc{'u'};
 v=nc{'v'};
 ssh=nc{'ssh'}; 
- 
 
 lon_1d=cast(lon(1,:),'double');
 lat_1d=cast(lat(:,1),'double');
 
-% define spatial subsetting region
+% spatial subsetting region
 lon1=subregion(1);
 lon2=subregion(2);
 lat1=subregion(3);
@@ -140,8 +145,10 @@ end
 [~,ilat2]=min(abs(lat_1d-lat2));
 
 % this is the subgrid
-lon_2d=cast(lon(ilat1:ilat2,ilon1:ilon2),'double');
-lat_2d=cast(lat(ilat1:ilat2,ilon1:ilon2),'double');
+ilon=ilon1:stride:ilon2;
+ilat=ilat1:stride:ilat2;
+lon_2d=cast(lon(ilat,ilon),'double');
+lat_2d=cast(lat(ilat,ilon),'double');
 [nvert,nhoriz]=size(lon_2d);
 
 % Create a fake ADCIRC grid for drog2ddt
@@ -168,9 +175,9 @@ vt=ut;
 st=ut;
 for it=1:Time.size
     fprintf('Loading time level %d (%s)\n',it,datestr(time(it),2))
-    ut(it,:,:)=squeeze(u(it,level,ilat1:ilat2,ilon1:ilon2)); 
-    vt(it,:,:)=squeeze(v(it,level,ilat1:ilat2,ilon1:ilon2)); 
-    st(it,:,:)=squeeze(ssh(it,ilat1:ilat2,ilon1:ilon2)); 
+    ut(it,:,:)=squeeze(u(it,level,ilat,ilon)); 
+    vt(it,:,:)=squeeze(v(it,level,ilat,ilon)); 
+    st(it,:,:)=squeeze(ssh(it,ilat,ilon)); 
 end
 
 ut=cast(ut,'double');
@@ -183,7 +190,7 @@ V(Time.size).ssh=NaN;
 V(Time.size).time=NaN;
 
 fprintf('Restructuring arrays for tracker...\n')
-for i=1:length(it)
+for i=1:Time.size
     temp=squeeze(ut(i,:,:));
     V(i).u=temp(:);
     temp=squeeze(vt(i,:,:));

@@ -69,7 +69,7 @@ if ~is_valid_struct(fem_grid_struct)
 end
 
 % Check options structure
-if ~exist('options','variable')
+if ~exist('options','var')
    options.draw=0;
 else
    if ~isstruct(options)
