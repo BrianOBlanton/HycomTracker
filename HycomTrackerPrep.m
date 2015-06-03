@@ -2,12 +2,12 @@ function [V,G]=HycomTrackerPrep(varargin)
 % HycomTrackerPrep Prep code for tracking particles through HYCOM model
 % velocity fields.
 %
-% Call as: [V,G]=HycomTrackerPrep('URL',url,'Level',ilevel,'SubRegion',subregion)
+% Call as: [V,G]=HycomTrackerPrep('Url',url,'Level',level,'SubRegion',subregion)
 %
 % Inputs:
 %   url       - (OPT) points to a 3D Hycom solution file on a THREDDS DATA SERVER:
 %               (def='http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_91.1/2015')
-%   ilevel    - (OPT) is the vertical level to extract (def=1)
+%   level     - (OPT) is the vertical level to extract (def=1)
 %   subregion - (OPT) is a vector with fields: 
 %                    lon1  - lower-left longitude
 %                    lon2  - upper-right longitude
