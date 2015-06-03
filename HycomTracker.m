@@ -19,7 +19,7 @@ function R=HycomTracker(V,G,IC)
 % + HycomTracker - This converts lon/lat coords to cartesian, calls drog2ddt, 
 %   and inverts the projected particle locations back to lon/lat.
 %
-%There are other supporting codes that handle grid structures and coordinate projections.
+% There are other supporting codes that handle grid structures and coordinate projections.
 %
 % Run in MATLAB.
 %   First step: generate the velocity arrays from HYCOM and fake HYCOM/finite element grid.  

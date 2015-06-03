@@ -1,35 +1,46 @@
 function [V,G]=HycomTrackerPrep(varargin)
+% HycomTrackerPrep Prep code for tracking particles through HYCOM model
+% velocity fields.
 %
-% Call as: [V,G]=HycomTrackerPrep(url,'Level',ilevel,'SubRegion',subregion)
+% [V,G]=HycomTrackerPrep('Url',url,'Level',ilevel,'SubRegion',subregion)
 %
-% where:
-%   url (OPT) points to a 3D Hycom solution file on a THREDDS DATA SERVER:
-%      Default ='http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_91.1/2015';
-%   ilevel (OPT) is the vertical level to extract (def=1)
-%   subregion (OPT) is a vector with fields: 
-%       lon1 - lower-left longitude
-%       lon2 - upper-right longitude
-%       lat1 - lower-left latitude
-%       lat2 - upper-right latitude
-%
-% Returns a struct V with fields, extracted from the url end-point:
-%   u - east/west velocity field [nt X ne X nn]
-%   v - north/south velocity field [nt X ne X nn]
-%   t - time vector, in DATENUM format [nt]
+% Inputs:
+%   url       - (OPT) points to a 3D Hycom solution file on a THREDDS DATA SERVER:
+%               (def='http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_91.1/2015')
+%   ilevel    - (OPT) is the vertical level to extract (def=1)
+%   subregion - (OPT) is a vector with fields: 
+%                    lon1  - lower-left longitude
+%                    lon2  - upper-right longitude
+%                    lat1  - lower-left latitude
+%                    lat2  - upper-right latitude
+%               (def=[262  295  7   32], Gulf oef Mexico)
+%   
+% Outputs:
+%   V - a struct V with fields, extracted from the url end-point:
+%       u - east/west velocity field [nt X ne X nn]
+%       v - north/south velocity field [nt X ne X nn]
+%       t - time vector, in DATENUM format [nt]
 % 
-% Also returns G, a grid struct for fake finite element grid for drog2ddt
+%   G -  a grid struct for fake finite element grid for drog2ddt
 %       - x, y, z, e, bnd, etc... 
 %
-% Pass both V and G to HycomTrackerIC to generate initial conditions for
-% particle locations.
+% Example:
+%   [V,G]=HycomTrackerPrep;
+%   IC=HycomTrackerIC;
+%   R=HycomTracker(V,G,IC)
 %
+
+% Brian Blanton
+% Renaissance Computing Institute
+% The University of North Carolina at Chapel Hill
+% Summer 2015
 
 % Default propertyname values
 url='http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_91.1/2015';
 level=1;
 %subregion=[lon1 lon2 lat1 lat2];
 subregion =[262  295     7   32];
-PlotProgress=true;
+PlotProgress=false;
 verbose=false;
 
 if ~exist('ncgeodataset','file')
@@ -63,14 +74,16 @@ end;
      
 % open the data pipe
 try 
-    url='http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_91.1/2015';
     nc=ncgeodataset(url);
-    fprintf('nc.location=%s\n',nc.location)
-    fprintf('nc.netcdf=%s\n',nc.netcdf)
     %b=nc.variables{:}';
-catch
-    fprintf('Failed to open netCDF link: %s.  Check link and server status.\n',url)
+catch ME
+     msg = sprintf('Failed to open netCDF link: %s.  Check link and server status.',url);
+     causeException = MException('MATLAB:HycomTrackerPrep:ThreddsLink',msg);
+     ME = addCause(ME,causeException);
+     rethrow(ME)
 end
+
+fprintf('nc.location=%s\n',nc.location)
 
 % get spatial variables
 lon=nc{'Longitude'};
@@ -79,6 +92,7 @@ u=nc{'u'};
 v=nc{'v'};
 ssh=nc{'ssh'}; 
  
+
 lon_1d=cast(lon(1,:),'double');
 lat_1d=cast(lat(:,1),'double');
 
@@ -96,9 +110,9 @@ base_date=datenum(units(12:end));
 time=Time(:)+base_date;
 fprintf('%d time levels in %s\n',Time.size,url)
 
-
 if PlotProgress
     figure 
+    fprintf('Extracting first time level of ssh ...\n');
     sshd=ssh(1,:,:);
     sshd=squeeze(cast(sshd,'double'));
     pcolor(lon_1d,lat_1d,sshd)
@@ -131,6 +145,7 @@ lat_2d=cast(lat(ilat1:ilat2,ilon1:ilon2),'double');
 [nvert,nhoriz]=size(lon_2d);
 
 % Create a fake ADCIRC grid for drog2ddt
+fprintf('Creating fake finite element grid for HYCOM ...\n');
 G.lon=lon_2d(:);
 G.lat=lat_2d(:);
 G.lo0=mean(G.lon);
@@ -147,32 +162,43 @@ G.bnd=detbndy(G.e);
 % G=el_areas(G);
 
 % create velocity dataset for tracking
-it=1:Time.size;
-%it=1:2;
-ut=squeeze(u(it,level,ilat1:ilat2,ilon1:ilon2)); 
-vt=squeeze(v(it,level,ilat1:ilat2,ilon1:ilon2)); 
-st=squeeze(ssh(it,level,ilat1:ilat2,ilon1:ilon2)); 
+fprintf('Extracting u,v at level=%d and ssh for %d time levels...\n',level,Time.size)
+ut=NaN*ones(Time.size,nvert,nhoriz);
+vt=ut;
+st=ut;
+for it=1:Time.size
+    fprintf('Loading time level %d (%s)\n',it,datestr(time(it),2))
+    ut(it,:,:)=squeeze(u(it,level,ilat1:ilat2,ilon1:ilon2)); 
+    vt(it,:,:)=squeeze(v(it,level,ilat1:ilat2,ilon1:ilon2)); 
+    st(it,:,:)=squeeze(ssh(it,ilat1:ilat2,ilon1:ilon2)); 
+end
+
 ut=cast(ut,'double');
 vt=cast(vt,'double');
 st=cast(st,'double');
 
+V(Time.size).u=NaN;
+V(Time.size).v=NaN;
+V(Time.size).ssh=NaN;
+V(Time.size).time=NaN;
+
+fprintf('Restructuring arrays for tracker...\n')
 for i=1:length(it)
     temp=squeeze(ut(i,:,:));
     V(i).u=temp(:);
     temp=squeeze(vt(i,:,:));
     V(i).v=temp(:);
     temp=squeeze(st(i,:,:));
-    V(i).st=temp(:);
+    V(i).ssh=temp(:);
     V(i).time=time(i);
 end
 
 V(1).url=url;
 V(1).PlotProgress=PlotProgress;
 
-
 % plot first velocity time level
 if PlotProgress
     hold on
-    quiver(lon_2d,lat_2d,ut,vt)
+    quiver(lon_2d,lat_2d,squeeze(ut(1,:,:)),squeeze(vt(1,:,:)))
 end
 

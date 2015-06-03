@@ -45,12 +45,13 @@ function [xx,yy,tt,uu,vv]=drog2ddt(fem_grid_struct,t1d,t2d,dt,idt,xi,yi,V,option
 
 % Written by: Brian Blanton, Fall 99
 %             added output of along-track u,v 31 Jan 03
+%
 if nargin==0
    disp('Call as:  [xx,yy]=drog2ddt(fem_grid_struct,t1,t2,dt,idt,xi,yi,V,options)')
    return
 end
 
-if nargin==1&strcmp(fem_grid_struct,'velhelp')
+if nargin==1 && strcmp(fem_grid_struct,'velhelp')
    velhelp('Help');
    return
 end
@@ -68,7 +69,7 @@ if ~is_valid_struct(fem_grid_struct)
 end
 
 % Check options structure
-if ~exist('options')
+if ~exist('options','variable')
    options.draw=0;
 else
    if ~isstruct(options)
@@ -84,7 +85,7 @@ end
 %Check that field names of V include atleast u,v,time
 fnames=fieldnames(V);
 if ~all(any([strcmp(fnames,'u') strcmp(fnames,'v') strcmp(fnames,'time')]))
-   error(['Velocity array lacks a needed field name.'])
+   error('Velocity array lacks a needed field name.')
 end
 %Loop over number of velocity snapshots and verify
 sgx=size(fem_grid_struct.x);
