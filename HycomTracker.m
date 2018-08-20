@@ -44,9 +44,6 @@ G=belint(G);    % interpolation/basic functions
 G=el_areas(G);  % element areas in m^2
 [IC.x,IC.y]=convll2m(IC.lon,IC.lat,G.lo0,G.la0);
 
-
-
-
 figure 
 line(IC.x-360,IC.y,'Marker','.','Color','k','LineStyle','none')    
 axis([min(G.x) max(G.x) min(G.y) max(G.y)])
@@ -76,7 +73,7 @@ if exist('coast.mat','file')
    line(c.long,c.lat,'Color','k')
 end
 
-axis([-99 -75 16 34])
+axis([min(G.lon)-360 max(G.lon)-360 min(G.lat) max(G.lat)])
 title({'Trajectories in HYCOM Surface Velocity',...
         V(1).url,...
         [datestr(V(1).time,2) ' thru ' datestr(V(end).time,2) ]},'Interpreter','none')

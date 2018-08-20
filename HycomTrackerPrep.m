@@ -52,30 +52,30 @@ end
 % Strip off propertyname/value pairs in varargin not related to
 % "line" object properties.
 k=1;
-while k<length(varargin),
-  switch lower(varargin{k}),
-    case 'url',
+while k<length(varargin)
+  switch lower(varargin{k})
+    case 'url'
       url=varargin{k+1};
       varargin([k k+1])=[];
-    case 'level',
+    case 'level'
       level=varargin{k+1};
       varargin([k k+1])=[];
-    case 'subregion',
+    case 'subregion'
       subregion=varargin{k+1};
       varargin([k k+1])=[];
-    case 'plotprogress',
+    case 'plotprogress'
       subregion=varargin{k+1};
       varargin([k k+1])=[];
-    case 'verbose',
+    case 'verbose'
       verbose=varargin{k+1};
       varargin([k k+1])=[];
-    case 'stride',
+    case 'stride'
       stride=varargin{k+1};
       varargin([k k+1])=[];
     otherwise
       k=k+2;
-  end;
-end;      
+  end
+end     
      
 % open the data pipe
 fprintf('Trying to contact %s ...\n',url)
@@ -149,7 +149,7 @@ ilon=ilon1:stride:ilon2;
 ilat=ilat1:stride:ilat2;
 lon_2d=cast(lon(ilat,ilon),'double');
 lat_2d=cast(lat(ilat,ilon),'double');
-[nvert,nhoriz]=size(lon_2d);
+[nlat,nlon]=size(lon_2d);
 
 % Create a fake ADCIRC grid for drog2ddt
 fprintf('Creating fake finite element grid for HYCOM ...\n');
@@ -163,14 +163,14 @@ G.lat1=lat1;
 G.lat2=lat2;
 G.z=NaN*ones(size(G.lat));
 G.name='FakeHycomGrid';
-G.e=elgen(nhoriz,nvert);
+G.e=elgen(nlon,nlat);
 G.bnd=detbndy(G.e);
 % G=belint(G);
 % G=el_areas(G);
 
 % create velocity dataset for tracking
 fprintf('Extracting u,v at level=%d and ssh for %d time levels...\n',level,Time.size)
-ut=NaN*ones(Time.size,nvert,nhoriz);
+ut=NaN*ones(Time.size,nlat,nlon);
 vt=ut;
 st=ut;
 for it=1:Time.size

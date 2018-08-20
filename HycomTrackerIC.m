@@ -15,13 +15,25 @@ function IC=HycomTrackerIC
 % build out this function to suit needs.  The example below is a 
 % 1deg X 1deg cluster of starting locations off the Texas coast:
 
-lon1=264;
-lon2=265;
-lat1=25.5;
-lat2=26.5;
 
-% separation in lon/lat
-dll=.1;
+
+% Lower-left corner of box
+lon1=293;    
+lat1=10;
+% Upper right corner of box
+lon2=306;
+lat2=20;
+% resolution in lon/lat for starting locations
+dll=1;
+
+% 
+% lon1=264;
+% lon2=265;
+% lat1=25.5;
+% lat2=26.5;
+% 
+% % separation in lon/lat
+% dll=.1;
 
 lon=lon1:dll:lon2;
 lat=lat1:dll:lat2;
@@ -32,3 +44,4 @@ IC.lat=IC.lat(:);
 % find initial elements
 % fprintf('Locating initial positions in fake grid...\n')
 % IC.j=findelem(G,IC.x,IC.y);
+
