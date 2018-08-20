@@ -39,13 +39,11 @@ dt=24;  % time step in hours
 
 
 % project lon/lat to xy since u,v are in m/s
-[G.x,G.y]=convll2m(G.lon,G.lat,G.lo0,G.la0);
-G=belint(G);    % interpolation/basic functions
-G=el_areas(G);  % element areas in m^2
 [IC.x,IC.y]=convll2m(IC.lon,IC.lat,G.lo0,G.la0);
 
 figure 
-line(IC.x-360,IC.y,'Marker','.','Color','k','LineStyle','none')    
+%line(IC.x-360,IC.y,'Marker','.','Color','k','LineStyle','none')    
+line(IC.x,IC.y,'Marker','.','Color','k','LineStyle','none')    
 axis([min(G.x) max(G.x) min(G.y) max(G.y)])
 
 [R.xx,R.yy,R.tt,R.uu,R.vv]=drog2ddt(G,t1d,t2d,dt,idt,IC.x,IC.y,V,options);
@@ -59,12 +57,15 @@ line(R.xx',R.yy')
 figure
 % plot the trajectories
 % Subtract 360 from longitude to get it in the range -180->180; note the transpose.
-plot(R.lon'-360,R.lat')      
+%plot(R.lon'-360,R.lat')      
+plot(R.lon',R.lat')      
 axis('equal')
 
 % plot the initial positions
-line(R.lon(:,1)-360,R.lat(:,1),'Marker','.','Color','k','LineStyle','none')    
-line(R.lon(:,end)-360,R.lat(:,end),'Marker','.','Color','r','LineStyle','none','MarkerSize',14)    
+%line(R.lon(:,1)-360,R.lat(:,1),'Marker','.','Color','k','LineStyle','none')    
+%line(R.lon(:,end)-360,R.lat(:,end),'Marker','.','Color','r','LineStyle','none','MarkerSize',14)    
+line(R.lon(:,1),R.lat(:,1),'Marker','.','Color','k','LineStyle','none')    
+line(R.lon(:,end),R.lat(:,end),'Marker','.','Color','r','LineStyle','none','MarkerSize',14)    
 
 % plot some coastline data, if you have it.  If you have the mapping toolbox, then:
 if exist('coast.mat','file')
@@ -73,7 +74,9 @@ if exist('coast.mat','file')
    line(c.long,c.lat,'Color','k')
 end
 
-axis([min(G.lon)-360 max(G.lon)-360 min(G.lat) max(G.lat)])
+%axis([min(G.lon)-360 max(G.lon)-360 min(G.lat) max(G.lat)])
+axis([min(G.lon) max(G.lon) min(G.lat) max(G.lat)])
 title({'Trajectories in HYCOM Surface Velocity',...
         V(1).url,...
-        [datestr(V(1).time,2) ' thru ' datestr(V(end).time,2) ]},'Interpreter','none')
+        [datestr(V(1).time,2) ' thru ' datestr(V(end).time,2) ]},...
+        'Interpreter','none')

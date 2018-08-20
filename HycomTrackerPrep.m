@@ -1,20 +1,25 @@
 function [V,G]=HycomTrackerPrep(varargin)
 % HycomTrackerPrep Prep code for tracking particles through HYCOM model
-% velocity fields.
+% velocity fields. 
 %
-% Call as: [V,G]=HycomTrackerPrep('Url',url,'Level',level,'SubRegion',subregion)
+% Call as: [V,G]=HycomTrackerPrep('Url',url,'Level',level,'SubRegion',subregion,'ShiftLon',shiftlon)
 %
 % Inputs:
 %   url       - (OPT) points to a 3D Hycom solution file on a THREDDS DATA SERVER:
 %               (def='http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_91.1/2015')
+%               or to a file on local disk with u,v; use the NCSS THREDDS
+%               service to downoad subsets of the full solutions.
 %   level     - (OPT) is the vertical level to extract (def=1)
 %   stride    - (OPT) spatial stride, basically the skip interval (def=1, no skip)
 %   subregion - (OPT) is a vector with fields: 
-%                    lon1  - lower-left longitude
-%                    lon2  - upper-right longitude
+%                    lon1  - lower-left longitude  
+%                    lon2  - upper-right longitude 
 %                    lat1  - lower-left latitude
 %                    lat2  - upper-right latitude
 %               (def=[262  295  7   32], Gulf oef Mexico)
+%               OR: -1 to use the full grid in the netCDF file/URL
+%   shiftlon  - (OPT) shift longitudes in HYCOM by shiftlon degrees west. 
+%               (def = 0)
 %   
 % Outputs:
 %   V - a struct V with fields, extracted from the url end-point:
@@ -35,15 +40,18 @@ function [V,G]=HycomTrackerPrep(varargin)
 % Renaissance Computing Institute
 % The University of North Carolina at Chapel Hill
 % Summer 2015
+% Summer 2018
 
 % Default propertyname values
 url='http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_91.1/2015';
 level=1;
 %subregion=[lon1 lon2 lat1 lat2];
-subregion =[262  295     7   32];
+%subregion =[262  295     7   32];
+subregion = -1;  % use all of the spatial region in the URL
 PlotProgress=false;
-verbose=false;
+%verbose=false;
 stride=1;
+shiftlon=360;
 
 if ~exist('ncgeodataset','file')
     error('This code requires nctoolbox for netCDF file access and processing. Install via GitHub from https://github.com/nctoolbox/nctoolbox')
@@ -72,11 +80,18 @@ while k<length(varargin)
     case 'stride'
       stride=varargin{k+1};
       varargin([k k+1])=[];
+    case 'shiftlon'
+      shiftlon=varargin{k+1};
+      varargin([k k+1])=[];
     otherwise
       k=k+2;
   end
 end     
-     
+
+if shiftlon<0 || shiftlon > 360
+    error('shiftlon must be between 0 and 360')
+end
+
 % open the data pipe
 fprintf('Trying to contact %s ...\n',url)
 try 
@@ -96,16 +111,30 @@ lon=nc{'Longitude'};
 lat=nc{'Latitude'};
 u=nc{'u'};
 v=nc{'v'};
-ssh=nc{'ssh'}; 
+%ssh=nc{'ssh'}; 
 
-lon_1d=cast(lon(1,:),'double');
+lon_1d=cast(lon(1,:),'double')-shiftlon;
 lat_1d=cast(lat(:,1),'double');
 
 % spatial subsetting region
-lon1=subregion(1);
-lon2=subregion(2);
-lat1=subregion(3);
-lat2=subregion(4);
+if length(subregion)==4 
+    lon1=subregion(1);
+    lon2=subregion(2);
+    lat1=subregion(3);
+    lat2=subregion(4);
+elseif subregion(1)==-1
+    lon1=min(lon_1d);
+    lon2=max(lon_1d);    
+    lat1=min(lat_1d);
+    lat2=max(lat_1d);
+else
+    error('Subregion option not valid.\n');
+end
+
+[~,ilon1]=min(abs(lon_1d-lon1));
+[~,ilon2]=min(abs(lon_1d-lon2));
+[~,ilat1]=min(abs(lat_1d-lat1));
+[~,ilat2]=min(abs(lat_1d-lat2));
 
 % create time vector
 %datestr(nc.timeextent('u'))
@@ -115,41 +144,36 @@ base_date=datenum(units(12:end));
 time=Time(:)+base_date;
 fprintf('%d time levels in %s\n',Time.size,url)
 
-if PlotProgress
-    figure 
-    fprintf('Extracting first time level of ssh ...\n');
-    sshd=ssh(1,:,:);
-    sshd=squeeze(cast(sshd,'double'));
-    pcolor(lon_1d,lat_1d,sshd)
-    shading flat
-    colorbar
-    axis('equal')
-    axis('tight')
-    caxis([-2 2])
-    colormap(parula(20))
-    line([lon1 lon2 lon2 lon1 lon1],[lat1 lat1 lat2 lat2 lat1])
-    title({url,['Full Domain, Sea Surface Height [m] @ ' datestr(time(1),2)]},'Interpreter','none')
-    print -dpng -r100 GlobalHycomGrid.png
-    
-    axis([lon1 lon2 lat1 lat2])
-    title({url,['Subregion Domain, Sea Surface Height [m] @ ' datestr(time(1),2)]},'Interpreter','none')
-    caxis([-1 1])
-    colormap(parula(10))
-    print -dpng -r100 SubRegionHycomGrid.png
-
-end
-
-[~,ilon1]=min(abs(lon_1d-lon1));
-[~,ilon2]=min(abs(lon_1d-lon2));
-[~,ilat1]=min(abs(lat_1d-lat1));
-[~,ilat2]=min(abs(lat_1d-lat2));
+% if PlotProgress
+%     figure 
+%     fprintf('Extracting first time level of ssh ...\n');
+%     sshd=ssh(1,:,:);
+%     sshd=squeeze(cast(sshd,'double'));
+%     pcolor(lon_1d,lat_1d,sshd)
+%     shading flat
+%     colorbar
+%     axis('equal')
+%     axis('tight')
+%     caxis([-2 2])
+%     colormap(parula(20))
+%     line([lon1 lon2 lon2 lon1 lon1],[lat1 lat1 lat2 lat2 lat1])
+%     title({url,['Full Domain, Sea Surface Height [m] @ ' datestr(time(1),2)]},'Interpreter','none')
+%     print -dpng -r100 GlobalHycomGrid.png
+%     
+%     axis([lon1 lon2 lat1 lat2])
+%     title({url,['Subregion Domain, Sea Surface Height [m] @ ' datestr(time(1),2)]},'Interpreter','none')
+%     caxis([-1 1])
+%     colormap(parula(10))
+%     print -dpng -r100 SubRegionHycomGrid.png
+% 
+% end
 
 % this is the subgrid
 ilon=ilon1:stride:ilon2;
+nlon=numel(ilon);
 ilat=ilat1:stride:ilat2;
-lon_2d=cast(lon(ilat,ilon),'double');
-lat_2d=cast(lat(ilat,ilon),'double');
-[nlat,nlon]=size(lon_2d);
+nlat=numel(ilat);
+[lon_2d,lat_2d]=meshgrid(lon_1d(ilon),lat_1d(ilat));
 
 % Create a fake ADCIRC grid for drog2ddt
 fprintf('Creating fake finite element grid for HYCOM ...\n');
@@ -167,9 +191,14 @@ G.e=elgen(nlon,nlat);
 G.bnd=detbndy(G.e);
 % G=belint(G);
 % G=el_areas(G);
+% project lon/lat to xy since u,v are in m/s
+[G.x,G.y]=convll2m(G.lon,G.lat,G.lo0,G.la0);
+G=belint(G);    % interpolation/basic functions
+G=el_areas(G);  % element areas in m^2
 
 % create velocity dataset for tracking
-fprintf('Extracting u,v at level=%d and ssh for %d time levels...\n',level,Time.size)
+%fprintf('Extracting u,v at level=%d and ssh for %d time levels...\n',level,Time.size)
+fprintf('Extracting u,v at level=%d for %d time levels...\n',level,Time.size)
 ut=NaN*ones(Time.size,nlat,nlon);
 vt=ut;
 st=ut;
@@ -177,12 +206,12 @@ for it=1:Time.size
     fprintf('Loading time level %d (%s)\n',it,datestr(time(it),2))
     ut(it,:,:)=squeeze(u(it,level,ilat,ilon)); 
     vt(it,:,:)=squeeze(v(it,level,ilat,ilon)); 
-    st(it,:,:)=squeeze(ssh(it,ilat,ilon)); 
+    %st(it,:,:)=squeeze(ssh(it,ilat,ilon)); 
 end
 
-ut=cast(ut,'double');
-vt=cast(vt,'double');
-st=cast(st,'double');
+%ut=cast(ut,'double');
+%vt=cast(vt,'double');
+%st=cast(st,'double');
 
 V(Time.size).u=NaN;
 V(Time.size).v=NaN;
@@ -204,8 +233,8 @@ V(1).url=url;
 V(1).PlotProgress=PlotProgress;
 
 % plot first velocity time level
-if PlotProgress
-    hold on
-    quiver(lon_2d,lat_2d,squeeze(ut(1,:,:)),squeeze(vt(1,:,:)))
-end
+% if PlotProgress
+%     hold on
+%     quiver(lon_2d,lat_2d,squeeze(ut(1,:,:)),squeeze(vt(1,:,:)))
+% end
 

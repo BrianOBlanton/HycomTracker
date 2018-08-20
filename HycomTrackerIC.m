@@ -18,10 +18,10 @@ function IC=HycomTrackerIC
 
 
 % Lower-left corner of box
-lon1=293;    
+lon1=-65;    
 lat1=10;
 % Upper right corner of box
-lon2=306;
+lon2=-55;
 lat2=20;
 % resolution in lon/lat for starting locations
 dll=1;
