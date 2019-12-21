@@ -1,4 +1,4 @@
-function R=HycomTracker(V,G,IC)
+function R=HycomTracker(V,G,IC,varargin)
 % Demonstration MATLAB code for particle tracking with HYCOM model output 
 % posted to THREDDS Data Servers (TDS).  The default url is:
 %      http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_91.1/2015. 
@@ -30,13 +30,48 @@ function R=HycomTracker(V,G,IC)
 %      R=HycomTracker(V,G,IC);
 %
 
+% options
+drawp=true;
+verbose=true;
+lag=1;
+integrator='rk2';
+dt=(V(2).time-V(1).time)*24;   % use nc units attribute!!!
+level=1;
+stride=1;
 
-options.draw=true;
-t1d=V(1).time;
-t2d=V(end).time;
-idt=1;
-dt=24;  % time step in hours
+tstart=V(1).time;
+tend=V(end).time;
 
+% Strip off propertyname/value pairs in varargin not related to
+% "line" object properties.
+k=1;
+while k<length(varargin)
+  switch lower(varargin{k})
+    case 'drawp'
+      drawp=varargin{k+1};
+      varargin([k k+1])=[];
+    case 'level'
+      level=varargin{k+1};
+      varargin([k k+1])=[];
+    case 'verbose'
+      verbose=varargin{k+1};
+      varargin([k k+1])=[];
+    case 'stride'
+      stride=varargin{k+1};
+      varargin([k k+1])=[];
+    case 'tstart'
+      tstart=varargin{k+1};
+      varargin([k k+1])=[];
+    case 'tend'
+      tend=varargin{k+1};
+      varargin([k k+1])=[];
+    case 'dt'
+      dt=varargin{k+1};
+      varargin([k k+1])=[];
+    otherwise
+      k=k+2;
+  end
+end     
 
 % project lon/lat to xy since u,v are in m/s
 [IC.x,IC.y]=convll2m(IC.lon,IC.lat,G.lo0,G.la0);
@@ -46,7 +81,9 @@ figure
 line(IC.x,IC.y,'Marker','.','Color','k','LineStyle','none')    
 axis([min(G.x) max(G.x) min(G.y) max(G.y)])
 
-[R.xx,R.yy,R.tt,R.uu,R.vv]=drog2ddt(G,t1d,t2d,dt,idt,IC.x,IC.y,V,options);
+options.draw=drawp;
+
+[R.xx,R.yy,R.tt,R.uu,R.vv]=drog2ddt(G,tstart,tend,dt,stride,IC.x,IC.y,V,options);
 
 line(R.xx',R.yy')
 
