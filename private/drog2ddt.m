@@ -1,10 +1,10 @@
-function [xx,yy,tt,uu,vv]=drog2ddt(fem_grid_struct,t1d,t2d,dt,idt,xi,yi,V,options)
+function [xx,yy,tt,uu,vv]=drog2ddt(TheGrid,t1d,t2d,dt,idt,xi,yi,V,options)
 %DROG2DDT track drogues in a 2-D FEM domain, time-stepping version
 % DROG2DDT tracks particles through a discrete squence of
 % 2-D velocity fields, vertically averaged for example.  The
 % integrator is a 2nd order Runge-Kutta (mid-point) method.
 %
-% Inputs: fem_grid_struct - FEM domain structure (from LOADGRID)
+% Inputs: TheGrid - FEM domain structure (from LOADGRID)
 %                           Horizontal coordinates are in meters (CARTESIAN).
 %         t1,t2           - integration end-points; both t1 & t2
 %                           must lie within the min and max time
@@ -40,18 +40,18 @@ function [xx,yy,tt,uu,vv]=drog2ddt(fem_grid_struct,t1d,t2d,dt,idt,xi,yi,V,option
 %
 %          uu,vv - along-track velocity in the same format as xx,yy
 % 
-% Call as: [xx,yy,tt,uu,vv]=drog2ddt(fem_grid_struct,t1,t2,dt,idt,xi,yi,V,options);
+% Call as: [xx,yy,tt,uu,vv]=drog2ddt(TheGrid,t1,t2,dt,idt,xi,yi,V,options);
 % 
 
 % Written by: Brian Blanton, Fall 99
 %             added output of along-track u,v 31 Jan 03
 %
 if nargin==0
-   disp('Call as:  [xx,yy]=drog2ddt(fem_grid_struct,t1,t2,dt,idt,xi,yi,V,options)')
+   disp('Call as:  [xx,yy]=drog2ddt(TheGrid,t1,t2,dt,idt,xi,yi,V,options)')
    return
 end
 
-if nargin==1 && strcmp(fem_grid_struct,'velhelp')
+if nargin==1 && strcmp(TheGrid,'velhelp')
    velhelp('Help');
    return
 end
@@ -61,11 +61,11 @@ if nargin<8
 end
 
 % First argument to drog2ddt must be a grid structure
-if ~isstruct(fem_grid_struct)
-   error('First argument to DROG2DDT must be a fem_grid_struct')
+if ~isstruct(TheGrid)
+   error('First argument to DROG2DDT must be a TheGrid')
 end
-if ~is_valid_struct(fem_grid_struct)
-   error('fem_grid_struct to DROG2DDT NOT valid.')
+if ~is_valid_struct(TheGrid)
+   error('TheGrid to DROG2DDT NOT valid.')
 end
 
 % Check options structure
@@ -88,7 +88,7 @@ if ~all(any([strcmp(fnames,'u') strcmp(fnames,'v') strcmp(fnames,'time')]))
    error('Velocity array lacks a needed field name.')
 end
 %Loop over number of velocity snapshots and verify
-sgx=size(fem_grid_struct.x);
+sgx=size(TheGrid.x);
 for i=1:length(V)
    if ~all(size(V(i).u)==sgx)
       error(['u field for V(' int2str(i) ') not same size as grid.'])
@@ -135,15 +135,15 @@ xi=xi(:);yi=yi(:);
 % slices are available.
 timevec=[V.time];
 
-% Attach element finding arrays to fem_grid_struct
-if ~isfield(fem_grid_struct,'A') || ~isfield(fem_grid_struct,'B') || ...
-   ~isfield(fem_grid_struct,'A0') || ~isfield(fem_grid_struct,'T')
-   fem_grid_struct=belint(fem_grid_struct);
-   disp('   BELINT info added to fem_grid_struct')
+% Attach element finding arrays to TheGrid
+if ~isfield(TheGrid,'A') || ~isfield(TheGrid,'B') || ...
+   ~isfield(TheGrid,'A0') || ~isfield(TheGrid,'T')
+   TheGrid=belint(TheGrid);
+   disp('   BELINT info added to TheGrid')
 end
-if ~isfield(fem_grid_struct,'ar')
-   disp('   EL_AREAS info added to fem_grid_struct')
-   fem_grid_struct=el_areas(fem_grid_struct);
+if ~isfield(TheGrid,'ar')
+   disp('   EL_AREAS info added to TheGrid')
+   TheGrid=el_areas(TheGrid);
 end
 
 % Locate initial positions in grid
@@ -152,10 +152,11 @@ end
 % be used to indicate drog in-activity, either because
 % the drog is initially out-of-bounds, or because the
 % drogue has left the domain during tracking.
-j=findelem(fem_grid_struct,[xi yi]);
+j=findelem(TheGrid,[xi yi]);
 
 % Allocate space for time history of positions
-tt=t1:dt:t2;tt=tt(1:idt:length(tt));
+tt=t1:dt:t2;
+tt=tt(1:idt:length(tt));
 xx=NaN*(ones(size(tt))'*ones(size(xi')))';
 yy=xx;
 uu=xx;
@@ -164,7 +165,7 @@ vv=xx;
 % 
 xx(:,1)=xi;
 yy(:,1)=yi;
-[ut,vt]=vel_interp(fem_grid_struct,xi,yi,j,V,timevec,timevec(1));
+[ut,vt]=vel_interp(TheGrid,xi,yi,j,V,timevec,timevec(1));
 uu(:,1)=ut;
 vv(:,1)=vt;
 
@@ -207,9 +208,11 @@ while time<t2
    end
    
    % Extract drogues currently in domain
-   jgood=j(igood);xgood=xnow(igood);ygood=ynow(igood);
+   jgood=j(igood);
+   xgood=xnow(igood);
+   ygood=ynow(igood);
    
-   [xnext,ynext,jnext]=track(fem_grid_struct,jgood,xgood,ygood,V,timevec,time,dtsecs);
+   [xnext,ynext,jnext]=track2(TheGrid,jgood,xgood,ygood,V,timevec,time,dtsecs);
    j(igood)=jnext;
    xnew(igood)=xnext;
    ynew(igood)=ynext;
@@ -221,7 +224,7 @@ while time<t2
    if rem(iter,idt)==0
    %keyboard
       ic=ic+1;
-      [ut,vt]=vel_interp(fem_grid_struct,xnext,ynext,jnext,V,timevec,time);
+      [ut,vt]=vel_interp(TheGrid,xnext,ynext,jnext,V,timevec,time);
       xx(:,ic+1)      =xnew;
       yy(:,ic+1)      =ynew;
       uu(igood,ic+1)  =ut;
@@ -258,59 +261,131 @@ else
    vv=reshape(vv,mdrog,ndrog,ic+1);
 end
 
-return
 
-
+end
 
 % PRIVATE FUNCTIONS
 
-function jnew=locate_drog(fem_grid_struct,x,y,j)
+function jnew=locate_drog(TheGrid,x,y,j)
 jnew=j;
 % See if drogs are still in Previously known element
-idx=belel(fem_grid_struct,j,[x y]);
+idx=belel(TheGrid,j,[x y]);
 inotfound=find(idx==0);
 % Get new elements, if not in previously known element
 if ~isempty(inotfound)
    idx=inotfound;
-   jnew(idx)=findelem(fem_grid_struct,[x(idx) y(idx)]);
+   jnew(idx)=findelem(TheGrid,[x(idx) y(idx)]);
+end
 end
 
-function [xnew,ynew,jnew]=track(fem_grid_struct,j,x,y,V,timevec,t,dt)
+
+function [xnew,ynew,jnew]=track2(TheGrid,j,x,y,V,timevec,t,dt)
+%    dts=seconds(dt);
+    dts=dt;
+
+    % k1
+    [uk1,vk1]=vel_interp(TheGrid,x,y,j,V,timevec,t);  % eval field at current location
+
+    % k2
+    xtemp=x+.5*dts*uk1;
+    ytemp=y+.5*dts*vk1;
+    jtemp=locate_drog(TheGrid,xtemp,ytemp,j);  % relocate in elements
+    [uk2,vk2]=vel_interp(TheGrid,xtemp,ytemp,jtemp,V,timevec,t+.5*dt/24);
+
+    xnew=x+dts*(uk1 + uk2)/2;
+    ynew=y+dts*(vk1 + vk2)/2;
+
+    % If NaN is in j, then drog has left domain.  
+    % insert last known location into arrays
+    jnew=locate_drog(TheGrid,xnew,ynew,j);
+    inan=find(isnan(jnew));
+    if ~isempty(inan)
+       xnew(inan)=x(inan);
+       ynew(inan)=y(inan);
+    end
+     
+end
+
+
+function [xnew,ynew,jnew]=track2old(TheGrid,j,x,y,V,timevec,t,dt)
 jnew=j;
 % Mid-Point (RK2) step
-[u,v]=vel_interp(fem_grid_struct,x,y,j,V,timevec,t);
-uk1=dt*u;vk1=dt*v;
+[u,v]=vel_interp(TheGrid,x,y,j,V,timevec,t);
+uk1=dt*u;
+vk1=dt*v;
 xinter=x+.5*uk1;
 yinter=y+.5*vk1;
-jinter=locate_drog(fem_grid_struct,xinter,yinter,j);
-[uinter,vinter]=vel_interp(fem_grid_struct,xinter,yinter,jinter,V,timevec,t+.5*dt/3600);
+jinter=locate_drog(TheGrid,xinter,yinter,j);
+[uinter,vinter]=vel_interp(TheGrid,xinter,yinter,jinter,V,timevec,t+.5*dt/3600);
 uk2=dt*uinter;
 vk2=dt*vinter;
 xnew=x+uk2;
 ynew=y+vk2;
-         
-% If NaN is in j, then drog has left domain.  
+
+% If NaN is in j, then drog has left domain.
 % insert last known location into arrays
-jnew=locate_drog(fem_grid_struct,xnew,ynew,j);
+jnew=locate_drog(TheGrid,xnew,ynew,j);
 inan=find(isnan(jnew));
 if ~isempty(inan)
-   xnew(inan)=x(inan);
-   ynew(inan)=y(inan);
+    xnew(inan)=x(inan);
+    ynew(inan)=y(inan);
+end
 end
 
-function retval=belel(fem_grid_struct,j,xylist)
+function [xnew,ynew,jnew]=track4(TheGrid,j,x,y,V,timevec,t,dt)
+%    dts=seconds(dt);
+    dts=dt;
+
+    % k1
+    [uk1,vk1]=vel_interp(TheGrid,x,y,j,V,timevec,t);
+
+    % k2
+    xtemp=x+.5*uk1*dts;
+    ytemp=y+.5*vk1*dts;
+    jtemp=locate_drog(TheGrid,xtemp,ytemp,j);
+    [uk2,vk2]=vel_interp(TheGrid,xtemp,ytemp,jtemp,V,timevec,t+.5*dt);
+
+    % k3
+    xtemp=x+.5*uk2*dts;
+    ytemp=y+.5*vk2*dts;
+    jtemp=locate_drog(TheGrid,xtemp,ytemp,jtemp);
+    [uk3,vk3]=vel_interp(TheGrid,xtemp,ytemp,jtemp,V,timevec,t+.5*dt);
+
+    % k4
+    xtemp=x+uk3*dts;
+    ytemp=y+vk3*dts;
+    jtemp=locate_drog(TheGrid,xtemp,ytemp,jtemp);
+    [uk4,vk4]=vel_interp(TheGrid,xtemp,ytemp,jtemp,V,timevec,t+dt);
+
+    xnew=x+(uk1 + 2*uk2 + 2*uk3 + uk4)*dts/6;
+    ynew=y+(vk1 + 2*vk2 + 2*vk3 + vk4)*dts/6;
+
+    % If NaN is in j, then drog has left domain.  
+    % insert last known location into arrays
+    jnew=locate_drog(TheGrid,xnew,ynew,j);
+    inan=find(isnan(jnew));
+    if ~isempty(inan)
+       xnew(inan)=x(inan);
+       ynew(inan)=y(inan);
+    end
+end
+
+function retval=belel(TheGrid,j,xylist)
 %BELEL - determine if points are in elements
-% BELEL 
+% BELEL
 tol=eps*10000000;
-phi=basis2d(fem_grid_struct,xylist,j);
+phi=basis2d(TheGrid,xylist,j);
 test=phi>=-tol & phi<=1+tol;
 retval=all(test'==1);
+end
 
-function [u,v]=vel_interp(fem_grid_struct,x,y,j,V,timevec,t)
+function [u,v]=vel_interp(TheGrid,x,y,j,V,timevec,t)
 % Get the velocities at this time
 % Temporal interpolation of velocity slices to this time.
-it1=find(t<=timevec);it1=it1(1);
-it2=find(t>=timevec);it2=it2(length(it2));
+it1=find(t<=timevec);
+it1=it1(1);
+it2=find(t>=timevec);
+it2=it2(length(it2));
 if it1==it2
    tfac1=1;tfac2=0;
 else
@@ -330,19 +405,19 @@ if length(j)>150
    uu=tfac1*u2 + tfac2*u1;
    vv=tfac1*v2 + tfac2*v1;
    % ... then, space
-   u=interp_scalar(fem_grid_struct,uu,x,y,j);
-   v=interp_scalar(fem_grid_struct,vv,x,y,j);
+   u=interp_scalar(TheGrid,uu,x,y,j);
+   v=interp_scalar(TheGrid,vv,x,y,j);
 else
    % Interpolate in space first, at the 2 time levels
-   uu1=interp_scalar(fem_grid_struct,u1,x,y,j);
-   vv1=interp_scalar(fem_grid_struct,v1,x,y,j);
-   uu2=interp_scalar(fem_grid_struct,u2,x,y,j);
-   vv2=interp_scalar(fem_grid_struct,v2,x,y,j);
+   uu1=interp_scalar(TheGrid,u1,x,y,j);
+   vv1=interp_scalar(TheGrid,v1,x,y,j);
+   uu2=interp_scalar(TheGrid,u2,x,y,j);
+   vv2=interp_scalar(TheGrid,v2,x,y,j);
    % Then, interpolate BETWEEN time levels
    u=tfac1*uu2 + tfac2*uu1;
    v=tfac1*vv2 + tfac2*vv1;
 end
-
+end
 
 function velhelp(ftitle)
 str={'This describes the format of the array which contains the velocity',...
@@ -361,11 +436,11 @@ str={'This describes the format of the array which contains the velocity',...
 'the names of the fields MUST be u,v,time.  ',...
 ' ',...
 'The fields u,v must be the same size as the x,y,z',...
-'coordinate arrays in the fem_grid_struct.  The time',...
+'coordinate arrays in the TheGrid.  The time',...
 'field is the timestamp for the velocity snapshot in HOURS.'};
 h=helpdlg(str,ftitle);
 
-
+end
 
 %
 %        Brian O. Blanton

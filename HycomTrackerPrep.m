@@ -16,10 +16,12 @@ function [V,G]=HycomTrackerPrep(varargin)
 %                    lon2  - upper-right longitude 
 %                    lat1  - lower-left latitude
 %                    lat2  - upper-right latitude
-%               (def=[262  295  7   32], Gulf oef Mexico)
+%               (def=[-80  -50  5   35], Gulf oef Mexico)
 %               OR: -1 to use the full grid in the netCDF file/URL
-%   shiftlon  - (OPT) shift longitudes in HYCOM by shiftlon degrees west. 
-%               (def = 0)
+%   shiftlon  - (OPT) shift longitudes in HYCOM to -180:180. 
+%               (def = true)
+%      ndays  - number of days to access, from the start of the time in the
+%               dataset at the url (def="all"
 %   
 % Outputs:
 %   V - a struct V with fields, extracted from the url end-point:
@@ -46,12 +48,13 @@ function [V,G]=HycomTrackerPrep(varargin)
 url='http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_91.1/2015';
 level=1;
 %subregion=[lon1 lon2 lat1 lat2];
-%subregion =[262  295     7   32];
-subregion = -1;  % use all of the spatial region in the URL
+subregion =[-80  -50  5   35];
+%subregion = -1;  % use all of the spatial region in the URL
 PlotProgress=false;
 %verbose=false;
 stride=1;
-shiftlon=360;
+shiftlon=true;
+ndays=[];
 
 if ~exist('ncgeodataset','file')
     error('This code requires nctoolbox for netCDF file access and processing. Install via GitHub from https://github.com/nctoolbox/nctoolbox')
@@ -83,20 +86,20 @@ while k<length(varargin)
     case 'shiftlon'
       shiftlon=varargin{k+1};
       varargin([k k+1])=[];
+    case 'ndays'
+      ndays=varargin{k+1};
+      varargin([k k+1])=[];
     otherwise
       k=k+2;
   end
 end     
 
-if shiftlon<0 || shiftlon > 360
-    error('shiftlon must be between 0 and 360')
-end
-
 % open the data pipe
-fprintf('Trying to contact %s ...\n',url)
+fprintf('Contacting %s ...\n',url)
 try 
     nc=ncgeodataset(url);
     %b=nc.variables{:}';
+    %fprintf('Variables are: %s\n',b);
 catch ME
      msg = sprintf('Failed to open netCDF link: %s.  Check link and server status.',url);
      causeException = MException('MATLAB:HycomTrackerPrep:ThreddsLink',msg);
@@ -113,8 +116,17 @@ u=nc{'u'};
 v=nc{'v'};
 %ssh=nc{'ssh'}; 
 
-lon_1d=cast(lon(1,:),'double')-shiftlon;
+lon_1d=cast(lon(1,:),'double');
 lat_1d=cast(lat(:,1),'double');
+
+% check lon var attributes for "modulo"
+if strcmp(lon.attribute('modulo'),'360 degrees')
+    shiftlon=true;
+end
+
+if shiftlon
+    lon_1d=lon_1d-360;
+end
 
 % spatial subsetting region
 if length(subregion)==4 
@@ -142,7 +154,17 @@ Time=nc.gettimevar('MT');
 units=Time.attribute('units');
 base_date=datenum(units(12:end));
 time=Time(:)+base_date;
+dt=time(2)-time(1);
 fprintf('%d time levels in %s\n',Time.size,url)
+
+if isempty(ndays)
+    ndays=length(time);
+else
+    if ndays > length(time)
+        fprintf('Input ndays exceeds length of time at url. Setting to length(Time).\n');
+        ndays=length(time);
+    end
+end
 
 % if PlotProgress
 %     figure 
@@ -202,7 +224,7 @@ fprintf('Extracting u,v at level=%d for %d time levels...\n',level,Time.size)
 ut=NaN*ones(Time.size,nlat,nlon);
 vt=ut;
 st=ut;
-for it=1:Time.size
+for it=1:ndays
     fprintf('Loading time level %d (%s)\n',it,datestr(time(it),2))
     ut(it,:,:)=squeeze(u(it,level,ilat,ilon)); 
     vt(it,:,:)=squeeze(v(it,level,ilat,ilon)); 
@@ -226,11 +248,13 @@ for i=1:Time.size
     V(i).v=temp(:);
     temp=squeeze(st(i,:,:));
     V(i).ssh=temp(:);
+%    V(i).time=datetime(datevec(time(i)));
     V(i).time=time(i);
 end
 
 V(1).url=url;
 V(1).PlotProgress=PlotProgress;
+
 
 % plot first velocity time level
 % if PlotProgress
