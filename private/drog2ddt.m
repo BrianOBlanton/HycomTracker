@@ -129,7 +129,8 @@ if ~all(size(xi)==size(yi))
    error('Sizes of initial drog position arrays must be equal.')
 end
 [mdrog,ndrog]=size(xi);
-xi=xi(:);yi=yi(:);
+xi=xi(:);
+yi=yi(:);
 
 % Extract a time vector for the times at which the velocity
 % slices are available.
@@ -185,7 +186,6 @@ disp(['Starting: [' int2str(iter) ' ' datestr(time/24,0) ']'])
 xnew=xi;
 ynew=yi;
 
-
 while time<t2
    disp(['   Integrating: [' int2str(iter) ' ' datestr(time/24,0) ']'])
    % 
@@ -206,6 +206,8 @@ while time<t2
       disp(['Ending: [' int2str(iter) ' ' datestr(time/24,0) ']'])
       return
    end
+   
+   % disp([datestr(min(timevec)/24,0) '  '  datestr(time/24,0) '  '  datestr(max(timevec)/24,0)])
    
    % Extract drogues currently in domain
    jgood=j(igood);
@@ -290,7 +292,7 @@ function [xnew,ynew,jnew]=track2(TheGrid,j,x,y,V,timevec,t,dt)
     xtemp=x+.5*dts*uk1;
     ytemp=y+.5*dts*vk1;
     jtemp=locate_drog(TheGrid,xtemp,ytemp,j);  % relocate in elements
-    [uk2,vk2]=vel_interp(TheGrid,xtemp,ytemp,jtemp,V,timevec,t+.5*dt/24);
+    [uk2,vk2]=vel_interp(TheGrid,xtemp,ytemp,jtemp,V,timevec,t+.5*dt/86400);
 
     xnew=x+dts*(uk1 + uk2)/2;
     ynew=y+dts*(vk1 + vk2)/2;

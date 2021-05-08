@@ -21,7 +21,7 @@ function [V,G]=HycomTrackerPrep(varargin)
 %   shiftlon  - (OPT) shift longitudes in HYCOM to -180:180. 
 %               (def = true)
 %      ndays  - number of days to access, from the start of the time in the
-%               dataset at the url (def="all"
+%               dataset at the url (def="all")
 %   
 % Outputs:
 %   V - a struct V with fields, extracted from the url end-point:
